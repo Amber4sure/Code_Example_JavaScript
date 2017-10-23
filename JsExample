@@ -1,0 +1,186 @@
+//This file shows some basic activities using script languages which I am familiar with. 
+
+var server = "http://ixiada.xmu.edu.cn/ixmu/index.php/SecondHandMarket/create";
+var files = [];
+var saletype_id = 1;
+var saleaddress_id = 1;
+
+function changeArea(type) {
+	saleaddress_id = type;
+	var str = '';
+	switch (type) {
+		case 1:
+			str = '思明本部';
+			break;
+		case 2:
+			str = '学生公寓';
+			break;
+		case 3:
+			str = '翔安校区';
+			break;
+		default:
+			str = '其他';
+			break;
+	}
+	document.getElementById('saleaddress').innerHTML = str;
+}
+
+function changeGoodsType(type) {
+	saletype_id = type;
+	var str = '';
+	switch (type) {
+		case 1:
+			str = '数码';
+			break;
+		case 2:
+			str = '电器';
+			break;
+		case 3:
+			str = '运动';
+			break;
+		case 4:
+			str = '衣服';
+			break;
+		case 5:
+			str = '代步';
+			break;
+		case 6:
+			str = '娱乐';
+			break;
+		case 7:
+			str = '书刊';
+			break;
+		default:
+			str = '其他';
+			break;
+	}
+	document.getElementById('saletype').innerHTML = str;
+}
+
+// 上传文件
+function upload() {
+		
+		if (files.length <= 0) {
+			plus.nativeUI.alert("没有添加上传文件！");
+			return;
+		}
+		console.log("开始上传：");
+		var wt = plus.nativeUI.showWaiting();
+		var task = plus.uploader.createUpload(server, {
+				method: "POST"
+			},
+			function(t, status) { //上传完成
+				if (status == 200) {
+					console.log("上传成功：" + t.responseText);
+					wt.close();
+					//二手页面刷新
+					marketwebview = plus.webview.getWebviewById("market");
+					console.log(marketwebview);
+					marketwebview.reload();
+					setTimeout(function() {
+						plus.webview.currentWebview().close();
+					}, 1500);
+
+
+				} else {
+					console.log("上传失败：" + status);
+					wt.close();
+				}
+			}
+		);
+		var return1 = task.addData("area", saleaddress_id + '');
+		var return2 = task.addData("goodstype", '' + saletype_id);
+		task.addData("schoolnum", storage['schoolnum']);
+		task.addData("encodepassword", storage['encodepassword']);
+		task.addData("goodsname", document.getElementById('goodsname').value);
+		task.addData("introduction", document.getElementById('introduction').value);
+		task.addData("preprice", document.getElementById('preprice').value);
+		task.addData("nowprice", document.getElementById('nowprice').value);
+		task.addData("contactway", document.getElementById('tel').value);
+		console.log(return1 + '---' + return2);
+		for (var i = 0; i < files.length; i++) {
+			var f = files[i];
+			task.addFile(f.path, {
+				key: f.name
+			});
+		}
+		task.start();
+	}
+	// 拍照添加文件
+
+function appendByCamera() {
+		$('.takephoto').hide();
+		$('.mask').hide();
+		plus.camera.getCamera().captureImage(function(p) {
+			plus.io.resolveLocalFileSystemURL(p, function(entry) {
+
+				appendFile(entry.fullPath);
+				console.log(entry.fullPath);
+			}, function(e) {
+				console.log("读取拍照文件错误：" + e.message);
+			});
+		}, function(e) {
+
+			plus.nativeUI.toast("失败：" + e.message);
+			console.log("失败：" + e.message);
+		}, {
+			filename: "_doc/camera/"
+		});
+	}
+	// 从相册添加文件
+
+function appendByGallery() {
+		$('.takephoto').hide();
+		$('.mask').hide();
+		plus.nativeUI.toast("部分手机需长按照片可以多选照片");
+		plus.gallery.pick(function(p) {
+
+			for (var i in p.files) {
+				console.log(p.files[i]);
+				appendFile(p.files[i]);
+			}
+		}, function(e) {
+
+			plus.nativeUI.toast("取消选择图片");
+			console.log("取消选择图片");
+		}, {
+			filter: "image",
+			multiple: true
+		});
+	}
+	// 添加文件
+var index = 1;
+var img1 = document.getElementById("img1");
+var img2 = document.getElementById("img2");
+var img3 = document.getElementById("img3");
+
+function appendFile(p) {
+	if (img1.src != '') {
+		console.log("img1bu空");
+		if (img2.src != '') {
+			console.log("img2bu空");
+			if (img3.src != '') {
+				console.log("img3bu空");
+				document.getElementById("img" + index).setAttribute("src", p);
+				plus.nativeUI.toast("替换第" + index + "张照片");
+			} else {
+				img3.setAttribute("src", p);
+			}
+		} else {
+			img2.setAttribute("src", p);
+		}
+	} else {
+		img1.setAttribute("src", p);
+	}
+	//var img = document.getElementById("img" + index);
+	//img.setAttribute("src", p);
+	files.push({
+		name: index,
+		path: p
+	});
+	index++;
+	if (index > 3) {
+		index = 1;
+
+	}
+}
